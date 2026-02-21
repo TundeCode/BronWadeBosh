@@ -10,7 +10,7 @@
 <body>
 
 <nav>
-  <a href="index.html" class="logo">Auto<span>Lens</span></a>
+  <a href="home.html" class="logo">Auto<span>Lens</span></a>
 </nav>
 
 <div class="main">
@@ -34,10 +34,7 @@
       <div class="pipe-label">AI Extraction</div>
       <div class="pipe-status" id="s1">parsing listing...</div>
     </div>
-    <div class="pipe-step" id="step-vin">
-      <div class="pipe-icon">🔑</div>
-      <div class="pipe-label">VIN Decode</div>
-      <div class="pipe-status" id="s2">pending</div>
+  
     </div>
     <div class="pipe-step" id="step-recall">
       <div class="pipe-icon">🔔</div>
@@ -71,7 +68,6 @@
 <script>
   const steps = [
     { id: 'step-extract', status: 's1', text: 'Extracting fields with AI...', log: ['> Sending to language model...', '> Fields identified: year, make, model, VIN, price, mileage'], done: 'structured', progress: 20 },
-    { id: 'step-vin', status: 's2', text: 'Decoding VIN via NHTSA vPIC...', log: ['> VIN detected: 1HGCV2F34KA078901', '> Calling NHTSA vPIC API...', '> Response: Honda Accord Sport 2.0T / 2019'], done: 'decoded', progress: 40 },
     { id: 'step-recall', status: 's3', text: 'Checking NHTSA recall database...', log: ['> Querying recalls for VIN...', '> Found 2 open recall(s)', '> NHTSA Campaign: 21V-xxx — Airbag inflator'], done: '2 recalls', progress: 60 },
     { id: 'step-price', status: 's4', text: 'Estimating fair market price...', log: ['> Analyzing year, mileage, trim...', '> Market comp range: $16,800 – $19,200', '> Listed at $18,500 → within range'], done: 'fair', progress: 80 },
     { id: 'step-risk', status: 's5', text: 'Calculating risk score...', log: ['> Scanning for red flags...', '> Title status: clean ✓', '> Accident claims: none stated', '> Open recalls: flagged ⚠'], done: 'scored', progress: 100 },
