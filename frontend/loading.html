@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AutoLens — Analyzing...</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0a08;
+    --surface: #111110;
+    --border: #242420;
+    --accent: #e8ff47;
+    --accent2: #ff6b35;
+    --text: #f0ede8;
+    --muted: #6b6b65;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 999;
+    opacity: 0.4;
+  }
+
+  nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem 3rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1.8rem;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .logo span { color: var(--text); }
+
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    position: relative;
+  }
+
+  /* Big scanning animation */
+  .scanner-ring {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    margin-bottom: 3rem;
+  }
+
+  .ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+  }
+
+  .ring-1 {
+    inset: 0;
+    border-color: rgba(232,255,71,0.15);
+    animation: rotate 3s linear infinite;
+    border-top-color: var(--accent);
+    border-right-color: var(--accent);
+  }
+
+  .ring-2 {
+    inset: 20px;
+    border-color: rgba(232,255,71,0.08);
+    animation: rotate 2s linear infinite reverse;
+    border-bottom-color: rgba(232,255,71,0.4);
+  }
+
+  .ring-3 {
+    inset: 40px;
+    border-color: rgba(232,255,71,0.05);
+    animation: rotate 4s linear infinite;
+    border-left-color: rgba(232,255,71,0.25);
+  }
+
+  .ring-center {
+    position: absolute;
+    inset: 60px;
+    background: rgba(232,255,71,0.05);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  /* Sweep line */
+  .ring-1::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 50%;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(232,255,71,0.8), transparent);
+    transform-origin: left center;
+    animation: sweep 3s linear infinite;
+  }
+
+  @keyframes rotate { to { transform: rotate(360deg); } }
+  @keyframes rotate-rev { to { transform: rotate(-360deg); } }
+  @keyframes pulse { 0%, 100% { transform: scale(0.95); } 50% { transform: scale(1.05); } }
+  @keyframes sweep { to { transform: rotate(360deg); } }
+
+  .analyzing-text {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+
+  .analyzing-text h1 {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 3rem;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+  }
+
+  .analyzing-text h1 span {
+    color: var(--accent);
+  }
+
+  .step-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+    min-height: 1.5em;
+  }
+
+  /* Steps pipeline */
+  .pipeline {
+    display: flex;
+    gap: 0;
+    align-items: stretch;
+    width: 100%;
+    max-width: 800px;
+    margin-bottom: 2rem;
+    border: 1px solid var(--border);
+  }
+
+  .pipe-step {
+    flex: 1;
+    padding: 1.25rem 1rem;
+    border-right: 1px solid var(--border);
+    position: relative;
+    transition: all 0.4s;
+  }
+
+  .pipe-step:last-child { border-right: none; }
+
+  .pipe-step.done {
+    background: rgba(232,255,71,0.04);
+  }
+
+  .pipe-step.active {
+    background: rgba(232,255,71,0.06);
+    border-color: rgba(232,255,71,0.2);
+  }
+
+  .pipe-icon {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .pipe-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 0.25rem;
+  }
+
+  .pipe-status {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    transition: color 0.3s;
+  }
+
+  .pipe-step.done .pipe-status {
+    color: var(--accent);
+  }
+
+  .pipe-step.active .pipe-status {
+    color: var(--text);
+    animation: blink 1s step-end infinite;
+  }
+
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  .pipe-step.done .pipe-label::before {
+    content: '✓ ';
+    color: var(--accent);
+  }
+
+  .pipe-step.active .pipe-label::before {
+    content: '⟳ ';
+    color: var(--text);
+    display: inline-block;
+    animation: rotate 1s linear infinite;
+  }
+
+  /* Progress bar */
+  .progress-outer {
+    width: 100%;
+    max-width: 800px;
+    height: 3px;
+    background: var(--border);
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 1rem;
+  }
+
+  .progress-inner {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width 0.6s ease;
+    box-shadow: 0 0 10px rgba(232,255,71,0.5);
+  }
+
+  .progress-pct {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--muted);
+    text-align: right;
+    max-width: 800px;
+    width: 100%;
+    margin-bottom: 2rem;
+  }
+
+  /* Background big text */
+  .bg-text {
+    position: absolute;
+    font-family: 'Bebas Neue', cursive;
+    font-size: 20rem;
+    color: rgba(255,255,255,0.012);
+    pointer-events: none;
+    letter-spacing: -0.05em;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    white-space: nowrap;
+  }
+
+  /* Log terminal */
+  .log-terminal {
+    width: 100%;
+    max-width: 800px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 1rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    max-height: 120px;
+    overflow-y: auto;
+  }
+
+  .log-line {
+    color: var(--muted);
+    line-height: 1.8;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .log-line.ok { color: var(--accent); }
+  .log-line.warn { color: var(--accent2); }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="logo">Auto<span>Lens</span></a>
+</nav>
+
+<div class="main">
+  <div class="bg-text">SCAN</div>
+
+  <div class="scanner-ring">
+    <div class="ring ring-1"></div>
+    <div class="ring ring-2"></div>
+    <div class="ring ring-3"></div>
+    <div class="ring-center">🚗</div>
+  </div>
+
+  <div class="analyzing-text">
+    <h1>AI is <span>Analyzing</span></h1>
+    <div class="step-text" id="stepText">Initializing extraction engine...</div>
+  </div>
+
+  <div class="pipeline" id="pipeline">
+    <div class="pipe-step active" id="step-extract">
+      <div class="pipe-icon">🤖</div>
+      <div class="pipe-label">AI Extraction</div>
+      <div class="pipe-status" id="s1">parsing listing...</div>
+    </div>
+    <div class="pipe-step" id="step-vin">
+      <div class="pipe-icon">🔑</div>
+      <div class="pipe-label">VIN Decode</div>
+      <div class="pipe-status" id="s2">pending</div>
+    </div>
+    <div class="pipe-step" id="step-recall">
+      <div class="pipe-icon">🔔</div>
+      <div class="pipe-label">Recall Check</div>
+      <div class="pipe-status" id="s3">pending</div>
+    </div>
+    <div class="pipe-step" id="step-price">
+      <div class="pipe-icon">💰</div>
+      <div class="pipe-label">Price Analysis</div>
+      <div class="pipe-status" id="s4">pending</div>
+    </div>
+    <div class="pipe-step" id="step-risk">
+      <div class="pipe-icon">⚠️</div>
+      <div class="pipe-label">Risk Scoring</div>
+      <div class="pipe-status" id="s5">pending</div>
+    </div>
+  </div>
+
+  <div class="progress-outer">
+    <div class="progress-inner" id="progressBar"></div>
+  </div>
+  <div class="progress-pct" id="pct">0%</div>
+
+  <div class="log-terminal" id="logTerminal">
+    <div class="log-line">> AutoLens v2.1 initialized</div>
+    <div class="log-line">> Input received: paste text mode</div>
+    <div class="log-line">> Starting AI extraction pipeline...</div>
+  </div>
+</div>
+
+<script>
+  const steps = [
+    { id: 'step-extract', status: 's1', text: 'Extracting fields with AI...', log: ['> Sending to language model...', '> Fields identified: year, make, model, VIN, price, mileage'], done: 'structured', progress: 20 },
+    { id: 'step-vin', status: 's2', text: 'Decoding VIN via NHTSA vPIC...', log: ['> VIN detected: 1HGCV2F34KA078901', '> Calling NHTSA vPIC API...', '> Response: Honda Accord Sport 2.0T / 2019'], done: 'decoded', progress: 40 },
+    { id: 'step-recall', status: 's3', text: 'Checking NHTSA recall database...', log: ['> Querying recalls for VIN...', '> Found 2 open recall(s)', '> NHTSA Campaign: 21V-xxx — Airbag inflator'], done: '2 recalls', progress: 60 },
+    { id: 'step-price', status: 's4', text: 'Estimating fair market price...', log: ['> Analyzing year, mileage, trim...', '> Market comp range: $16,800 – $19,200', '> Listed at $18,500 → within range'], done: 'fair', progress: 80 },
+    { id: 'step-risk', status: 's5', text: 'Calculating risk score...', log: ['> Scanning for red flags...', '> Title status: clean ✓', '> Accident claims: none stated', '> Open recalls: flagged ⚠'], done: 'scored', progress: 100 },
+  ];
+
+  let current = 0;
+
+  function runStep(i) {
+    if (i >= steps.length) {
+      setTimeout(() => window.location.href = 'results.html', 800);
+      return;
+    }
+
+    const step = steps[i];
+
+    // Mark previous done
+    if (i > 0) {
+      document.getElementById(steps[i - 1].id).classList.remove('active');
+      document.getElementById(steps[i - 1].id).classList.add('done');
+    }
+
+    // Mark current active
+    const el = document.getElementById(step.id);
+    el.classList.add('active');
+
+    // Update step text
+    document.getElementById('stepText').textContent = step.text;
+    document.getElementById(step.status).textContent = 'processing...';
+
+    // Progress
+    document.getElementById('progressBar').style.width = step.progress + '%';
+    document.getElementById('pct').textContent = step.progress + '%';
+
+    // Log
+    const log = document.getElementById('logTerminal');
+    step.log.forEach((line, idx) => {
+      setTimeout(() => {
+        const div = document.createElement('div');
+        div.className = 'log-line' + (line.includes('recall') || line.includes('⚠') ? ' warn' : line.includes('✓') || line.includes('Response') ? ' ok' : '');
+        div.textContent = line;
+        log.appendChild(div);
+        log.scrollTop = log.scrollHeight;
+      }, idx * 400);
+    });
+
+    setTimeout(() => {
+      document.getElementById(step.status).textContent = step.done;
+      runStep(i + 1);
+    }, step.log.length * 400 + 600);
+  }
+
+  setTimeout(() => runStep(0), 600);
+</script>
+
+</body>
+</html>

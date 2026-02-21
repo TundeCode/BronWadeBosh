@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AutoLens — AI Used Car Analyzer</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a08;
+    --surface: #111110;
+    --border: #242420;
+    --accent: #e8ff47;
+    --accent2: #ff6b35;
+    --text: #f0ede8;
+    --muted: #6b6b65;
+    --danger: #ff4444;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Noise texture overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 999;
+    opacity: 0.4;
+  }
+
+  nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem 3rem;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: rgba(10,10,8,0.92);
+    backdrop-filter: blur(12px);
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1.8rem;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  .logo span { color: var(--text); }
+
+  .nav-links {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+  }
+
+  .nav-links a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover { color: var(--text); }
+
+  .btn-nav {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    padding: 0.5rem 1.25rem;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    font-size: 0.85rem;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+    transition: opacity 0.2s;
+  }
+
+  .btn-nav:hover { opacity: 0.85; }
+
+  /* Hero */
+  .hero {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    min-height: calc(100vh - 73px);
+  }
+
+  .hero-left {
+    padding: 5rem 3rem 5rem 3rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border-right: 1px solid var(--border);
+  }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(232,255,71,0.08);
+    border: 1px solid rgba(232,255,71,0.2);
+    color: var(--accent);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.35rem 0.75rem;
+    margin-bottom: 2rem;
+    width: fit-content;
+  }
+
+  .tag::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  h1 {
+    font-family: 'Bebas Neue', cursive;
+    font-size: clamp(4rem, 7vw, 7rem);
+    line-height: 0.9;
+    letter-spacing: 0.02em;
+    margin-bottom: 1.5rem;
+  }
+
+  h1 .line2 { color: var(--accent); display: block; }
+
+  .hero-desc {
+    color: var(--muted);
+    font-size: 1.05rem;
+    line-height: 1.7;
+    max-width: 480px;
+    margin-bottom: 2.5rem;
+    font-weight: 300;
+  }
+
+  .stats-row {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .stat { }
+  .stat-val {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 2.2rem;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+  }
+  .stat-label {
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .feature-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .ftag {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.78rem;
+    padding: 0.3rem 0.7rem;
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* Hero Right - Input Panel */
+  .hero-right {
+    padding: 3rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: var(--surface);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-right::before {
+    content: 'ANALYZE';
+    position: absolute;
+    bottom: -2rem;
+    right: -1rem;
+    font-family: 'Bebas Neue', cursive;
+    font-size: 12rem;
+    color: rgba(255,255,255,0.02);
+    pointer-events: none;
+    letter-spacing: -0.02em;
+  }
+
+  .panel-title {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1.5rem;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+    color: var(--text);
+  }
+
+  .panel-sub {
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-bottom: 2rem;
+    font-weight: 300;
+  }
+
+  .input-type-toggle {
+    display: flex;
+    gap: 0;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--border);
+  }
+
+  .toggle-btn {
+    flex: 1;
+    padding: 0.6rem;
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    transition: all 0.2s;
+    border-right: 1px solid var(--border);
+  }
+
+  .toggle-btn:last-child { border-right: none; }
+
+  .toggle-btn.active {
+    background: var(--accent);
+    color: var(--bg);
+  }
+
+  .input-area {
+    position: relative;
+    margin-bottom: 1rem;
+  }
+
+  .url-input {
+    width: 100%;
+    padding: 0.9rem 1rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .url-input:focus { border-color: var(--accent); }
+  .url-input::placeholder { color: var(--muted); }
+
+  .paste-area {
+    width: 100%;
+    height: 220px;
+    padding: 1rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 300;
+    line-height: 1.6;
+    resize: none;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .paste-area:focus { border-color: var(--accent); }
+  .paste-area::placeholder { color: var(--muted); }
+
+  .hidden { display: none; }
+
+  .input-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+
+  .char-count { font-family: 'DM Mono', monospace; }
+
+  .analyze-btn {
+    width: 100%;
+    padding: 1.1rem;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1.4rem;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+    transition: all 0.2s;
+  }
+
+  .analyze-btn::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+    transition: left 0.4s;
+  }
+
+  .analyze-btn:hover { background: #d4eb3a; }
+  .analyze-btn:hover::before { left: 100%; }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 1.5rem 0;
+    color: var(--muted);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .sample-btn {
+    width: 100%;
+    padding: 0.8rem;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .sample-btn:hover { border-color: var(--text); color: var(--text); }
+
+  /* How it works section */
+  .how-section {
+    padding: 6rem 3rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 1.5rem;
+    margin-bottom: 4rem;
+  }
+
+  .section-num {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 5rem;
+    color: var(--border);
+    line-height: 1;
+  }
+
+  .section-title {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 2.5rem;
+    letter-spacing: 0.05em;
+  }
+
+  .steps-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    border: 1px solid var(--border);
+  }
+
+  .step {
+    padding: 2rem;
+    border-right: 1px solid var(--border);
+    position: relative;
+    transition: background 0.2s;
+  }
+
+  .step:last-child { border-right: none; }
+  .step:hover { background: var(--surface); }
+
+  .step-icon {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .step-n {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--accent);
+    margin-bottom: 0.75rem;
+    letter-spacing: 0.1em;
+  }
+
+  .step h3 {
+    font-size: 1rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+  }
+
+  .step p {
+    font-size: 0.82rem;
+    color: var(--muted);
+    line-height: 1.6;
+    font-weight: 300;
+  }
+
+  /* Features */
+  .features-section {
+    padding: 6rem 3rem;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    margin-top: 3rem;
+  }
+
+  .feature-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .feature-card:hover { border-color: var(--accent); }
+
+  .feature-card::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 60px; height: 60px;
+    background: var(--accent);
+    opacity: 0;
+    clip-path: polygon(100% 0, 0 0, 100% 100%);
+    transition: opacity 0.2s;
+  }
+
+  .feature-card:hover::after { opacity: 0.08; }
+
+  .f-icon {
+    width: 40px; height: 40px;
+    background: rgba(232,255,71,0.1);
+    border: 1px solid rgba(232,255,71,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .feature-card h3 {
+    font-size: 0.95rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+  }
+
+  .feature-card p {
+    font-size: 0.82rem;
+    color: var(--muted);
+    line-height: 1.6;
+    font-weight: 300;
+  }
+
+  .badge {
+    display: inline-block;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 0.15rem 0.4rem;
+    background: rgba(255,107,53,0.15);
+    border: 1px solid rgba(255,107,53,0.3);
+    color: var(--accent2);
+    margin-left: 0.5rem;
+    vertical-align: middle;
+  }
+
+  /* Footer */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 2rem 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .footer-note {
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+
+  .api-pills {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .api-pill {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    padding: 0.2rem 0.6rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="logo">Auto<span>Lens</span></a>
+  <ul class="nav-links">
+    <li><a href="results.html">Results</a></li>
+    <li><a href="compare.html">Compare</a></li>
+    <li><a href="recall.html">Recalls</a></li>
+    <li><a href="negotiate.html">Negotiate</a></li>
+    <li><a href="history.html">History</a></li>
+  </ul>
+  <button class="btn-nav">Try Demo</button>
+</nav>
+
+<div class="hero">
+  <div class="hero-left">
+    <div class="tag">AI-Powered Vehicle Intelligence</div>
+    <h1>
+      DON'T GET<br>
+      <span class="line2">PLAYED.</span>
+    </h1>
+    <p class="hero-desc">
+      Paste any used car listing — Facebook Marketplace, Craigslist, dealer site — and get an instant AI analysis with pricing truth, risk flags, and recall history.
+    </p>
+
+    <div class="stats-row">
+      <div class="stat">
+        <div class="stat-val">98%</div>
+        <div class="stat-label">VIN decode accuracy</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val">43M+</div>
+        <div class="stat-label">Recalls in database</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val">&lt;8s</div>
+        <div class="stat-label">Avg analysis time</div>
+      </div>
+    </div>
+
+    <div class="feature-tags">
+      <span class="ftag">NHTSA Recalls</span>
+      <span class="ftag">vPIC Decode</span>
+      <span class="ftag">Fair Price Score</span>
+      <span class="ftag">AI Extraction</span>
+      <span class="ftag">Red Flag Detection</span>
+      <span class="ftag">Seller Questions</span>
+    </div>
+  </div>
+
+  <div class="hero-right">
+    <p class="panel-title">Analyze a Listing</p>
+    <p class="panel-sub">Paste a URL or raw listing text to get started</p>
+
+    <div class="input-type-toggle">
+      <button class="toggle-btn active" onclick="switchMode('url', this)">URL</button>
+      <button class="toggle-btn" onclick="switchMode('text', this)">Paste Text</button>
+      <button class="toggle-btn" onclick="switchMode('upload', this)">Screenshot</button>
+    </div>
+
+    <div class="input-area">
+      <input id="urlInput" class="url-input" type="url" placeholder="https://www.facebook.com/marketplace/item/..." />
+      <textarea id="textInput" class="paste-area hidden" placeholder="Paste the full listing text here...&#10;&#10;Example:&#10;2019 Honda Accord Sport&#10;$18,500 · 67,000 miles&#10;VIN: 1HGCV1F34KA123456&#10;Clean title, one owner, no accidents..."></textarea>
+      <div id="uploadInput" class="hidden" style="border: 2px dashed var(--border); padding: 3rem 2rem; text-align: center; cursor: pointer; color: var(--muted); font-size: 0.85rem; background: var(--bg);">
+        📸 Drop screenshot here or click to upload
+        <br><span style="font-size: 0.75rem; opacity: 0.6; margin-top: 0.5rem; display: block;">PNG, JPG, WEBP accepted</span>
+      </div>
+    </div>
+
+    <div class="input-meta">
+      <span>Supports Facebook Marketplace, Craigslist, AutoTrader, dealer sites</span>
+      <span id="charCount" class="char-count">0 chars</span>
+    </div>
+
+    <button class="analyze-btn" onclick="window.location.href='loading.html'">⚡ Analyze This Listing</button>
+
+    <div class="divider">or</div>
+
+    <button class="sample-btn" onclick="loadSample()">Load Sample Listing</button>
+  </div>
+</div>
+
+<!-- How it works -->
+<div class="how-section">
+  <div class="section-header">
+    <span class="section-num">01</span>
+    <span class="section-title">How AutoLens Works</span>
+  </div>
+  <div class="steps-grid">
+    <div class="step">
+      <div class="step-icon">📋</div>
+      <div class="step-n">STEP 01</div>
+      <h3>Paste or Link</h3>
+      <p>Drop a URL or paste raw listing text. We accept any format from any platform.</p>
+    </div>
+    <div class="step">
+      <div class="step-icon">🤖</div>
+      <div class="step-n">STEP 02</div>
+      <h3>AI Extraction</h3>
+      <p>Our LLM extracts structured data — year, make, model, VIN, mileage, price, claims — with confidence scoring.</p>
+    </div>
+    <div class="step">
+      <div class="step-icon">🔍</div>
+      <div class="step-n">STEP 03</div>
+      <h3>API Enrichment</h3>
+      <p>We hit NHTSA vPIC to decode the VIN and pull all open recalls for that exact vehicle.</p>
+    </div>
+    <div class="step">
+      <div class="step-icon">📊</div>
+      <div class="step-n">STEP 04</div>
+      <h3>Your Scorecard</h3>
+      <p>Get a Fair Price Score, Risk Analysis, Red Flags list, and a seller question script.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Features -->
+<div class="features-section">
+  <div class="section-header">
+    <span class="section-num">02</span>
+    <span class="section-title">What You Get</span>
+  </div>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="f-icon">💰</div>
+      <h3>Fair Price Score</h3>
+      <p>AI-estimated market range based on year, make, model, trim, and mileage bands. Clearly labeled as estimate.</p>
+    </div>
+    <div class="feature-card">
+      <div class="f-icon">⚠️</div>
+      <h3>Risk Analysis</h3>
+      <p>Flags inconsistencies, overpricing, vague claims, missing info, and seller red flags automatically.</p>
+    </div>
+    <div class="feature-card">
+      <div class="f-icon">🔔</div>
+      <h3>NHTSA Recall Check</h3>
+      <p>Live lookup against 43M+ government recall records. Know if the car has open safety issues before you buy.</p>
+    </div>
+    <div class="feature-card">
+      <div class="f-icon">❓</div>
+      <h3>Seller Questions</h3>
+      <p>AI-generated question list tailored to this specific listing's gaps and claims. Go in prepared.</p>
+    </div>
+    <div class="feature-card">
+      <div class="f-icon">🗣️</div>
+      <h3>Negotiation Script <span class="badge">PRO</span></h3>
+      <p>A ready-to-use negotiation script based on your findings. Know exactly what to say and when.</p>
+    </div>
+    <div class="feature-card">
+      <div class="f-icon">⚖️</div>
+      <h3>Compare Mode <span class="badge">PRO</span></h3>
+      <p>Side-by-side analysis of two listings. Score them head-to-head and pick the better deal.</p>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-note">AutoLens uses NHTSA public APIs. Price estimates are AI-generated and should not replace professional inspection.</div>
+  <div class="api-pills">
+    <span class="api-pill">NHTSA vPIC</span>
+    <span class="api-pill">NHTSA Recalls</span>
+    <span class="api-pill">Claude AI</span>
+  </div>
+</footer>
+
+<script>
+  function switchMode(mode, btn) {
+    document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('urlInput').classList.add('hidden');
+    document.getElementById('textInput').classList.add('hidden');
+    document.getElementById('uploadInput').classList.add('hidden');
+    if (mode === 'url') document.getElementById('urlInput').classList.remove('hidden');
+    if (mode === 'text') document.getElementById('textInput').classList.remove('hidden');
+    if (mode === 'upload') document.getElementById('uploadInput').classList.remove('hidden');
+  }
+
+  document.getElementById('textInput').addEventListener('input', function() {
+    document.getElementById('charCount').textContent = this.value.length + ' chars';
+  });
+
+  function loadSample() {
+    const sample = `2019 Honda Accord Sport 2.0T
+Price: $18,500
+Mileage: 67,234 miles
+VIN: 1HGCV2F34KA078901
+Location: Austin, TX
+Title: Clean
+One owner, no accidents. Regular oil changes at Honda dealership. New tires at 60k miles. Sunroof, heated seats, Apple CarPlay. Minor scratch on rear bumper (shown in photos). Price is firm — already reduced from $20k.`;
+    document.getElementById('textInput').value = sample;
+    document.getElementById('textInput').classList.remove('hidden');
+    document.getElementById('urlInput').classList.add('hidden');
+    document.getElementById('uploadInput').classList.add('hidden');
+    document.querySelectorAll('.toggle-btn')[1].click();
+    document.getElementById('charCount').textContent = sample.length + ' chars';
+  }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AutoLens — Negotiation Script</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0a08;
+    --surface: #111110;
+    --surface2: #161614;
+    --border: #242420;
+    --accent: #e8ff47;
+    --accent2: #ff6b35;
+    --text: #f0ede8;
+    --muted: #6b6b65;
+    --green: #4ade80;
+    --yellow: #fbbf24;
+    --red: #f87171;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 999;
+    opacity: 0.4;
+  }
+
+  nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 3rem;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: rgba(10,10,8,0.95);
+    backdrop-filter: blur(12px);
+    z-index: 100;
+  }
+
+  .logo { font-family: 'Bebas Neue', cursive; font-size: 1.8rem; letter-spacing: 0.05em; color: var(--accent); text-decoration: none; }
+  .logo span { color: var(--text); }
+
+  .btn { padding: 0.5rem 1.1rem; font-family: 'DM Sans', sans-serif; font-size: 0.82rem; font-weight: 500; cursor: pointer; letter-spacing: 0.04em; text-transform: uppercase; border: 1px solid var(--border); background: transparent; color: var(--muted); transition: all 0.2s; text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem; }
+  .btn:hover { border-color: var(--text); color: var(--text); }
+  .btn-primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  .btn-primary:hover { background: #d4eb3a; color: var(--bg); }
+
+  .page-wrap { max-width: 900px; margin: 0 auto; padding: 2rem 3rem 4rem; }
+
+  /* Header */
+  .script-header {
+    margin-bottom: 2.5rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .script-header-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 2rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .page-title {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 3rem;
+    letter-spacing: 0.03em;
+    line-height: 0.95;
+    margin-bottom: 0.5rem;
+  }
+
+  .page-sub { color: var(--muted); font-size: 0.88rem; font-weight: 300; line-height: 1.5; }
+
+  .targets {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 1.25rem 1.5rem;
+    min-width: 240px;
+  }
+
+  .target-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .target-row:last-child { border-bottom: none; }
+  .t-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
+  .t-val { font-family: 'Bebas Neue', cursive; font-size: 1.3rem; letter-spacing: 0.02em; }
+  .t-open { color: var(--accent); }
+  .t-target { color: var(--text); }
+  .t-walk { color: var(--red); }
+
+  /* Strategy card */
+  .strategy-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    border-left: 3px solid var(--accent);
+  }
+
+  .strategy-title {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1.2rem;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+    margin-bottom: 0.75rem;
+  }
+
+  .strategy-body { font-size: 0.88rem; color: var(--muted); line-height: 1.65; font-weight: 300; }
+
+  .leverage-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+
+  .ltag {
+    padding: 0.25rem 0.7rem;
+    font-size: 0.72rem;
+    font-family: 'DM Mono', monospace;
+    background: rgba(232,255,71,0.06);
+    border: 1px solid rgba(232,255,71,0.15);
+    color: var(--accent);
+  }
+
+  /* Script phases */
+  .phase {
+    margin-bottom: 2rem;
+  }
+
+  .phase-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .phase-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--accent);
+    background: rgba(232,255,71,0.08);
+    border: 1px solid rgba(232,255,71,0.2);
+    padding: 0.2rem 0.6rem;
+    letter-spacing: 0.08em;
+  }
+
+  .phase-title {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1.3rem;
+    letter-spacing: 0.04em;
+  }
+
+  .phase-timing {
+    margin-left: auto;
+    font-size: 0.7rem;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* Chat-style script bubbles */
+  .script-bubble {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0;
+    padding: 1.1rem 1.25rem;
+    margin-bottom: 0.75rem;
+    position: relative;
+  }
+
+  .bubble-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .bubble-label.you { color: var(--accent); }
+  .bubble-label.them { color: var(--muted); }
+
+  .bubble-label::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+  }
+
+  .bubble-text {
+    font-size: 0.88rem;
+    line-height: 1.65;
+    font-style: italic;
+    font-weight: 300;
+  }
+
+  .bubble-note {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-style: normal;
+  }
+
+  .bubble-note::before { content: '💡 '; }
+
+  .you-bubble {
+    border-left: 3px solid var(--accent);
+    background: rgba(232,255,71,0.02);
+  }
+
+  .them-bubble {
+    border-left: 3px solid var(--border);
+    background: var(--surface2);
+    opacity: 0.8;
+  }
+
+  /* Copy button */
+  .copy-btn {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    padding: 0.25rem 0.6rem;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.68rem;
+    font-family: 'DM Mono', monospace;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Walk away box */
+  .walkaway-box {
+    background: rgba(248,113,113,0.05);
+    border: 1px solid rgba(248,113,113,0.2);
+    border-left: 3px solid var(--red);
+    padding: 1.25rem 1.5rem;
+    margin-top: 2rem;
+  }
+
+  .walkaway-box h3 {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1.2rem;
+    color: var(--red);
+    margin-bottom: 0.75rem;
+    letter-spacing: 0.03em;
+  }
+
+  .walkaway-box p { font-size: 0.85rem; color: var(--muted); line-height: 1.65; font-weight: 300; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="logo">Auto<span>Lens</span></a>
+  <div style="display:flex; gap:0.75rem; align-items:center;">
+    <a href="results.html" class="btn">← Results</a>
+    <button class="btn btn-primary" onclick="window.print()">Print Script</button>
+  </div>
+</nav>
+
+<div class="page-wrap">
+
+  <div class="script-header">
+    <div class="script-header-top">
+      <div>
+        <div class="page-title">🗣️ Negotiation<br>Script</div>
+        <p class="page-sub">AI-generated based on your listing analysis.<br>2019 Honda Accord Sport 2.0T · $18,500 listed</p>
+      </div>
+      <div class="targets">
+        <div class="target-row">
+          <span class="t-label">Their Ask</span>
+          <span class="t-val" style="color:var(--muted)">$18,500</span>
+        </div>
+        <div class="target-row">
+          <span class="t-label">Your Open</span>
+          <span class="t-val t-open">$16,800</span>
+        </div>
+        <div class="target-row">
+          <span class="t-label">Target</span>
+          <span class="t-val t-target">$17,200</span>
+        </div>
+        <div class="target-row">
+          <span class="t-label">Walk Away At</span>
+          <span class="t-val t-walk">$18,200</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Strategy overview -->
+  <div class="strategy-box">
+    <div class="strategy-title">⚡ Your Strategy: "Recalls + Research"</div>
+    <p class="strategy-body">
+      You have two strong data-backed leverage points: 2 open NHTSA recalls (one safety-critical) and documented market comps showing fair value at $16,800–$19,200. The seller has already shown flexibility (dropped from $20k). Lead with the recalls as a legitimate concern, not a trick — you're doing them a favor by flagging it. Don't reveal your walk-away price. Be friendly, not aggressive.
+    </p>
+    <div class="leverage-tags">
+      <span class="ltag">2 Open NHTSA Recalls</span>
+      <span class="ltag">Airbag Safety-Critical</span>
+      <span class="ltag">Already Reduced $1,500</span>
+      <span class="ltag">No Carfax Provided</span>
+      <span class="ltag">67k Miles</span>
+      <span class="ltag">Minor Body Damage</span>
+    </div>
+  </div>
+
+  <!-- Phase 1: Opening -->
+  <div class="phase">
+    <div class="phase-header">
+      <span class="phase-num">PHASE 01</span>
+      <span class="phase-title">Opening — Build Rapport, Show Preparation</span>
+      <span class="phase-timing">First 2–3 min</span>
+    </div>
+
+    <div class="script-bubble you-bubble">
+      <button class="copy-btn" onclick="copyText(this)">copy</button>
+      <div class="bubble-label you">You say</div>
+      <div class="bubble-text">"Hey, thanks for meeting with me. The car looks great — I appreciate how clean you've kept it. I've done a bit of research on the Accord Sport 2.0T, so I came prepared. Mind if I take a quick walk around and then we can talk numbers?"</div>
+      <div class="bubble-note">Signal that you're informed. This shifts the dynamic before you've said a dollar amount.</div>
+    </div>
+  </div>
+
+  <!-- Phase 2: Inspection -->
+  <div class="phase">
+    <div class="phase-header">
+      <span class="phase-num">PHASE 02</span>
+      <span class="phase-title">Raise Concerns — Drop the Recall Card</span>
+      <span class="phase-timing">After inspection</span>
+    </div>
+
+    <div class="script-bubble you-bubble">
+      <button class="copy-btn" onclick="copyText(this)">copy</button>
+      <div class="bubble-label you">You say</div>
+      <div class="bubble-text">"I ran the VIN through the NHTSA database before coming out. There are actually two open recalls on this car — one is for the airbag inflator, which is flagged as safety-critical, and another for the automatic emergency braking software. Have those been taken care of at a Honda dealer? Do you have paperwork?"</div>
+      <div class="bubble-note">Lead with documented facts. This isn't confrontational — you're just a thorough buyer.</div>
+    </div>
+
+    <div class="script-bubble them-bubble">
+      <div class="bubble-label them">If they say: "I didn't know about any recalls"</div>
+      <div class="bubble-text">"No worries at all — they send mailers but it's easy to miss. Both remedies are free at any Honda dealer, but I'd need to bring it in myself. That's a few hours of my time — I'd want to factor that into what I'm offering."</div>
+    </div>
+
+    <div class="script-bubble them-bubble">
+      <div class="bubble-label them">If they say: "Those were already fixed"</div>
+      <div class="bubble-text">"Perfect — do you happen to have the work order from the dealer handy? That would definitely make me more comfortable."</div>
+    </div>
+  </div>
+
+  <!-- Phase 3: Offer -->
+  <div class="phase">
+    <div class="phase-header">
+      <span class="phase-num">PHASE 03</span>
+      <span class="phase-title">Make Your Offer — Anchored, Justified</span>
+      <span class="phase-timing">After Phase 2 lands</span>
+    </div>
+
+    <div class="script-bubble you-bubble">
+      <button class="copy-btn" onclick="copyText(this)">copy</button>
+      <div class="bubble-label you">You say</div>
+      <div class="bubble-text">"I like the car. Based on the comparable sales I found for 2019 Accord Sport 2.0Ts in Texas around this mileage, fair market is in the $16,800 to $19,200 range. Given the two open recalls I'd need to address and the rear bumper scratch, I'd like to start at $16,800. I'm ready to close today if we can get there."</div>
+      <div class="bubble-note">State your number with confidence. Giving a range signals you'll move up — don't.</div>
+    </div>
+
+    <div class="script-bubble them-bubble">
+      <div class="bubble-label them">Likely response: "I can't go that low, price is firm at $18,500"</div>
+      <div class="bubble-text">"I understand, and I'm not trying to lowball you — the car is worth it if the recalls are clean. Can you meet me at $17,200? That's still a very fair price for both of us, and I walk out today."</div>
+    </div>
+  </div>
+
+  <!-- Phase 4: Counter -->
+  <div class="phase">
+    <div class="phase-header">
+      <span class="phase-num">PHASE 04</span>
+      <span class="phase-title">Counter & Close</span>
+      <span class="phase-timing">If they push back</span>
+    </div>
+
+    <div class="script-bubble you-bubble">
+      <button class="copy-btn" onclick="copyText(this)">copy</button>
+      <div class="bubble-label you">You say (if they offer $17,800)</div>
+      <div class="bubble-text">"I can do $17,400 and we're done. You don't have to relist it, and I'm signing today. Sound fair?"</div>
+      <div class="bubble-note">Splitting the difference signals goodwill. "$17,400" is a specific number — it feels calculated, not arbitrary.</div>
+    </div>
+
+    <div class="script-bubble you-bubble">
+      <button class="copy-btn" onclick="copyText(this)">copy</button>
+      <div class="bubble-label you">If they hold at $18,000+</div>
+      <div class="bubble-text">"I really do like the car, but I have to stay disciplined on my budget. My absolute ceiling is $17,800 with a clean Carfax included. If not, I understand — I've got another Accord I'm looking at this weekend."</div>
+      <div class="bubble-note">The "other car" line creates urgency without being a bluff if true. Use only if you have alternatives.</div>
+    </div>
+  </div>
+
+  <!-- Walk away -->
+  <div class="walkaway-box">
+    <h3>🚪 Know Your Walk-Away Point: $18,200</h3>
+    <p>If the seller won't go below $18,200 AND cannot provide proof that the airbag recall was resolved, walk away. The airbag recall is safety-critical. That's not a negotiating point — it's a real risk. At $18,200 with unresolved safety recalls, this car is overpriced. There will be another Accord.</p>
+  </div>
+
+</div>
+
+<script>
+  function copyText(btn) {
+    const bubble = btn.closest('.script-bubble');
+    const text = bubble.querySelector('.bubble-text').textContent;
+    navigator.clipboard.writeText(text.trim()).then(() => {
+      btn.textContent = 'copied!';
+      btn.style.color = 'var(--accent)';
+      btn.style.borderColor = 'var(--accent)';
+      setTimeout(() => { btn.textContent = 'copy'; btn.style.color = ''; btn.style.borderColor = ''; }, 2000);
+    });
+  }
+</script>
+
+</body>
+</html>
